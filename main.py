@@ -32,21 +32,21 @@ SAVE_DIR     = "raft_ckpt"
 DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 DTYPE        = torch.bfloat16            # use fp16 if your GPU lacks bf16
 
-BATCH_PROMPTS      = 8                  # #different problems per optimiser step
-CANDIDATES_PER_Q   = 6                  # N in RAFT
+BATCH_PROMPTS      = 4                  # #different problems per optimiser step
+CANDIDATES_PER_Q   = 3                  # N in RAFT
 GEN_TEMPERATURE    = 0.9
 MAX_NEW_TOKENS     = 700
 
-LR                 = 1e-6
-GRAD_ACC_STEPS     = 4                  # effective batch == BATCH_PROMPTS×ACC
-TOTAL_STEPS        = 1_000
-PRINT_EVERY        = 50
-SAVE_EVERY         = 200
+LR                 = 5e-5
+GRAD_ACC_STEPS     = 2                  # effective batch == BATCH_PROMPTS×ACC
+TOTAL_STEPS        = 100
+PRINT_EVERY        = 1
+SAVE_EVERY         = 20
 
-PHASE_SWITCH_STEP  = 100               # after this, drop system prompt fully
+PHASE_SWITCH_STEP  = 10               # after this, drop system prompt fully
 ACCEPT_THRESHOLD   = 0.0               # reward > this ⇒ keep trace
 
-EVAL_EVERY         = 200               # optimiser steps between AIME evals
+EVAL_EVERY         = 20               # optimiser steps between AIME evals
 EVAL_MAX_PROBLEMS  = None              # None ⇒ full set; else first N items
 
 # -------------------- prompt builders --------------------
