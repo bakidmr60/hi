@@ -22,7 +22,7 @@ from typing import List, Tuple
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoTokenizer, AutoModelForCausalLM, AdamW
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from datasets import load_dataset
 from tqdm import tqdm
 
@@ -98,7 +98,7 @@ model     = AutoModelForCausalLM.from_pretrained(
 ).to(DEVICE)
 model.gradient_checkpointing_enable()
 
-optimizer = AdamW(model.parameters(), lr=LR)
+optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
 
 # GSM‑8K train split (~7.5 k items)
 gsm8k = load_dataset("openai/gsm8k", "main", split="train")
