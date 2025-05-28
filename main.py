@@ -1,19 +1,19 @@
-# Minimal RAFT demo – **quick run** with inline AIME-2024 evals
+# Minimal RAFT demo – **quick run** with inline AIME‑2024 evals
 # ============================================================
 # Goal: produce *some* accepted traces quickly so you can watch the
 # training/eval loop fire instead of hanging on "no accepted traces".
 #
 # Design choices
 # ---------------
-# • Tiny model (Qwen-Math-1.5B) so single GPU can sample >1 candidate cheaply.
+# • Tiny model (Qwen‑Math‑1.5B) so single GPU can sample >1 candidate cheaply.
 # • Reward = +1 if the generation contains *either* a correct answer **or**
 #   the required <think>/<answer> tag structure – this greatly increases the
 #   chance of positive rewards in the first few steps.
-# • Accept **top-k** positives per prompt (k = 1) rather than all, to keep
+# • Accept **top‑k** positives per prompt (k = 1) rather than all, to keep
 #   batches small.
-# • Evaluation every *5* optimiser steps on the full AIME-2024 set so you get
+# • Evaluation every *5* optimiser steps on the full AIME‑2024 set so you get
 #   feedback almost immediately.
-# • Only the first 500 GSM-8K problems are used (set `GSM_SUBSET = None` for
+# • Only the first 500 GSM‑8K problems are used (set `GSM_SUBSET = None` for
 #   full data) so the script starts sampling within seconds.
 #
 # This is still *real* RAFT – wrong / unformatted traces are discarded – just
@@ -30,7 +30,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from datasets import load_dataset
 from tqdm import tqdm
 
-# ---------------- hyper-params you may tweak ----------------
+# ---------------- hyper‑params you may tweak ----------------
 MODEL_PATH      = "Qwen/Qwen2.5-Math-1.5B"   # 1.5B => fast sampling
 DEVICE          = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 DTYPE           = torch.bfloat16            # fp16 if needed
@@ -40,14 +40,14 @@ PRINT_EVERY     = 1                        # tqdm display cadence
 EVAL_EVERY      = 5                        # eval cadence (optimiser steps)
 SAVE_EVERY      = 25                       # checkpoint cadence
 
-BATCH_PROMPTS   = 2                        # GSM-8K questions per update
+BATCH_PROMPTS   = 2                        # GSM‑8K questions per update
 CANDIDATES_PER_Q= 8                        # N in RAFT
 TOPK_ACCEPT     = 1                        # keep best k positives per prompt
 
 PHASE_SWITCH_STEP = 10                     # after this drop system prompt
 GEN_TEMP          = 0.9
 MAX_NEW_TOKENS    = 256
-LR                = 3e-5
+LR                = 3e‑5
 
 GSM_SUBSET      = 500                      # None ⇒ full 7.5k, else first N
 SAVE_DIR        = "raft_ckpt_quick"
@@ -55,7 +55,7 @@ SAVE_DIR        = "raft_ckpt_quick"
 # ---------------- templates ----------------
 SYSTEM_PROMPT = (
     "You are a helpful assistant. The user asks a math question. "
-    "Wrap your chain-of-thought between <think></think> and final answer "
+    "Wrap your chain‑of‑thought between <think></think> and final answer "
     "between <answer></answer>."
 )
 
@@ -132,7 +132,7 @@ def eval_aime() -> float:
 print("Starting training …")
 accum_loss = 0.0
 opt_step   = 0
-bar = tqdm(range(1, TOTAL_STEPS+1), position=0, desc="RAFT-quick")
+bar = tqdm(range(1, TOTAL_STEPS+1), position=0, desc="RAFT‑quick")
 
 for gstep in bar:
     include_system_gen = gstep <= PHASE_SWITCH_STEP
@@ -149,19 +149,21 @@ for gstep in bar:
         rewards = [make_reward(gt, t) for t in texts]
         # take up to TOPK_ACCEPT best positives
         pos = [pair for pair in sorted(zip(rewards, tok_ids), key=lambda x: -x[0]) if pair[0] > 0][:TOPK_ACCEPT]
-        for _, ans_ids in pos:
-            accepted.append(torch.cat([train_ids[0], ans_ids]))
+                for _, ans_ids in pos:
+            # ensure devices match (model output is on CUDA, prompt tokens on CPU)
+            ans_ids = ans_ids.cpu()
+            merged  = torch.cat([train_ids[0], ans_ids])
+            accepted.append((merged, train_ids.size(1)))  # store prompt length too)
 
     if not accepted:
         bar.set_postfix_str("no accept")
         continue
 
-    pad = pad_sequence(accepted, batch_first=True, padding_value=tokenizer.pad_token_id).to(DEVICE)
+        accepted_seqs, prompt_lens = zip(*accepted)
+    pad = pad_sequence(accepted_seqs, batch_first=True, padding_value=tokenizer.pad_token_id).to(DEVICE)
     labels = pad.clone()
-    for i, seq in enumerate(accepted):
-        # mask prompt tokens
-        prompt_len = pad.size(1) - seq.size(0) + train_ids.size(1)  # quick calc
-        labels[i, :prompt_len] = -100
+        for i, p_len in enumerate(prompt_lens):
+        labels[i, :p_len] = -100
 
     loss = model(input_ids=pad, labels=labels).loss / TOPK_ACCEPT
     loss.backward()
