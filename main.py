@@ -47,7 +47,7 @@ TOPK_ACCEPT     = 1                        # keep best k positives per prompt
 PHASE_SWITCH_STEP = 10                     # after this drop system prompt
 GEN_TEMP          = 0.9
 MAX_NEW_TOKENS    = 256
-LR                = 3e‑5
+LR                = 3e-5
 
 GSM_SUBSET      = 500                      # None ⇒ full 7.5k, else first N
 SAVE_DIR        = "raft_ckpt_quick"
